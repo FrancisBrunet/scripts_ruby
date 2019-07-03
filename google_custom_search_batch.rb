@@ -59,6 +59,14 @@ def build_header_line(array_line, date_attribute)
   array_line
 end
 
+def stop_if_too_many_errors(error_counter)
+  error_counter += 1
+  if error_counter > 25
+    puts "Something is going wrong..."
+    exit
+  end
+end
+
 #######################################################################
 ############################## VARIABLES ##############################
 #######################################################################
@@ -87,12 +95,7 @@ input_csv.each_with_index do |input_csv_row, index|
       output_csv_row << total_results
     rescue StandardError => e
       output_csv_row << e.message
-
-      error_counter += 1
-      if error_counter > 25
-        puts "Something is going wrong..."
-        exit
-      end
+      stop_if_too_many_errors(error_counter)
     end
   end
 
