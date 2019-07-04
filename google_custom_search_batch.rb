@@ -34,13 +34,19 @@ end
 
 def get_data(string_query, start_date, end_date)
   response = call_api(string_query, start_date, end_date)
-  raise_http_error(response) unless response.kind_of? Net::HTTPSuccess
+
+  while !(response.kind_of? Net::HTTPSuccess) do
+    puts "HTTP request failed (NOK) => #{response.code} #{response.message}"
+    puts "Body: #{response.body}"
+    puts "Will sleep for 60 seconds before retry..."
+    sleep(60)
+    puts "Here we go!"
+
+    response = call_api(string_query, start_date, end_date)
+  end
+
   json_response = JSON.parse(response.body)
   return json_response['queries']['request'][0]['totalResults']
-end
-
-def raise_http_error(response)
-  raise "HTTP request failed (NOK) => #{response.code} #{response.message}"
 end
 
 def build_string_query(prenom, nom)
@@ -59,19 +65,11 @@ def build_header_line(array_line, date_attribute)
   array_line
 end
 
-def stop_if_too_many_errors(error_counter)
-  if error_counter > 25
-    puts "Something is going wrong..."
-    exit
-  end
-end
-
 #######################################################################
 ############################## VARIABLES ##############################
 #######################################################################
 input_filename = 'input.csv'
 output_filename = 'output.csv'
-error_counter = 0
 
 #######################################################################
 ############################### SCRIPT ################################
@@ -89,14 +87,8 @@ input_csv.each_with_index do |input_csv_row, index|
   string_query = build_string_query(prenom, nom)
 
   DATE_RANGES.each do |date_range|
-    begin
-      total_results = get_data(string_query, date_range[:start], date_range[:end])
-      output_csv_row << total_results
-    rescue StandardError => e
-      output_csv_row << e.message
-      error_counter += 1
-      stop_if_too_many_errors(error_counter)
-    end
+    total_results = get_data(string_query, date_range[:start], date_range[:end])
+    output_csv_row << total_results
   end
 
   output_csv << output_csv_row
